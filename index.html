@@ -26,7 +26,7 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
-<link rel="modulepreload" href="./raytracer-1-4e2c14667debe99e.js" crossorigin="anonymous" integrity="sha384-ypoUguuNfyhwbRcFGMwFno5K7OuRYWLvi639hPeR4y+Q9qKHEhfRFcOrivfqS/SV"><link rel="preload" href="./raytracer-1-4e2c14667debe99e_bg.wasm" crossorigin="anonymous" integrity="sha384-rjkq09NsfbhWIB8r43HQndKcyY/QtCNutnsJx1pQEm7iJm4fyahnQzV/NSO8dAC/" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./raytracer-1-ad26dc4c2a7db65f.js" crossorigin="anonymous" integrity="sha384-ypoUguuNfyhwbRcFGMwFno5K7OuRYWLvi639hPeR4y+Q9qKHEhfRFcOrivfqS/SV"><link rel="preload" href="./raytracer-1-ad26dc4c2a7db65f_bg.wasm" crossorigin="anonymous" integrity="sha384-oND4EkohfWl6oyVv2aXqt8OUYzyJAa767KYLgVpcHhiu/tsaR7SRGnTCIwGUkkVF" as="fetch" type="application/wasm"></head>
 <body>
   <div id="loading">
     <div class="spinner"></div>
@@ -36,8 +36,8 @@
   <!-- trunk replaces this link with the compiled WASM module -->
   
 <script type="module">
-import init, * as bindings from './raytracer-1-4e2c14667debe99e.js';
-const wasm = await init({ module_or_path: './raytracer-1-4e2c14667debe99e_bg.wasm' });
+import init, * as bindings from './raytracer-1-ad26dc4c2a7db65f.js';
+const wasm = await init({ module_or_path: './raytracer-1-ad26dc4c2a7db65f_bg.wasm' });
 
 
 window.wasmBindings = bindings;
