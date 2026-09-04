@@ -26,18 +26,125 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
-<link rel="modulepreload" href="./raytracer-1-5ee12c9993e6beab.js" crossorigin="anonymous" integrity="sha384-C7MgMbZg4PwisglIz7JrBmsy13VMvvA/Piohf2JE8zaAdCD3EhuZIy0SC6dbOkZ3"><link rel="modulepreload" href="./snippets/raytracer-1-3814054fe582f55c/inline0.js" crossorigin="anonymous" integrity="sha384-QRwIoDx1aCuCcPWp1TwN7C+3Lk1OU3/gq//sN1NL3SNK5DRShXifZPe0bGGHMq/4"><link rel="preload" href="./raytracer-1-5ee12c9993e6beab_bg.wasm" crossorigin="anonymous" integrity="sha384-AM16K3g59jCcWRL8fMywcasXA568EncTnJb28CaO7RNgygeyZ0gs8YuD3mFUWhLf" as="fetch" type="application/wasm"></head>
+  <script>
+    function renderNotice(title, icon, message, detail, tips) {
+      const loading = document.getElementById('loading');
+      if (!loading) return;
+      loading.innerHTML = `
+        <div style="max-width: 620px; margin: 20px; padding: 24px; background: #161618; border: 1px solid #7e57c2; border-radius: 10px; color: #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; text-align: left; box-shadow: 0 8px 32px rgba(0,0,0,0.8);">
+          <h2 style="color: #ba68c8; margin-top: 0; margin-bottom: 12px; font-size: 20px; display: flex; align-items: center; gap: 8px;">
+            <span>${icon}</span> ${title}
+          </h2>
+          <p style="margin-bottom: 12px; font-size: 14px; color: #d0d0d5;">${message}</p>
+          ${detail ? `<div style="background: #0d0d0f; padding: 12px 14px; border: 1px solid #333; border-radius: 6px; font-family: monospace; font-size: 12px; color: #ff8e8e; margin-bottom: 16px; word-break: break-all;">${detail}</div>` : ''}
+          ${tips ? tips : ''}
+        </div>`;
+    }
+
+    function checkEnvironment() {
+      // 1. Check if opened via file:// protocol
+      if (window.location.protocol === 'file:') {
+        renderNotice(
+          'Local Web Server Required',
+          '⚠️',
+          'Browsers block <strong>WebAssembly (WASM)</strong> and <strong>WebGPU</strong> from running directly via the <code>file:///</code> protocol due to cross-origin security policies.',
+          'Current URL: ' + window.location.href,
+          `<h3 style="font-size: 15px; margin-bottom: 8px; color: #ffffff;">How to run:</h3>
+           <p style="font-size: 13px; color: #c0c0c8; margin-bottom: 8px;">Start a local web server from your terminal:</p>
+           <pre style="background:#0d0d0f; padding:10px; border-radius:6px; font-family:monospace; font-size:12px; color:#a5d6a7; margin-bottom:12px;">cargo run --bin build-web -- --serve\n# or\nnpx serve dist\n# or\npython -m http.server -d dist 8080</pre>
+           <div style="font-size: 12px; color: #888899; border-top: 1px solid #282830; padding-top: 10px;">
+             Then open <code style="color: #90caf9;">http://localhost:8080</code> in Chrome / Edge / Firefox.
+           </div>`
+        );
+        return false;
+      }
+
+      // 2. Check if this is the uncompiled source index.html (before trunk build)
+      if (document.querySelector('link[data-trunk]')) {
+        renderNotice(
+          'Source Template Opened',
+          '🚀',
+          'You opened the source <code>index.html</code> template. The compiled WebAssembly release is generated into <strong><code>./dist/</code></strong>.',
+          null,
+          `<a href="./dist/index.html" style="display:inline-block; padding:10px 20px; background:#7e57c2; color:#fff; text-decoration:none; border-radius:6px; font-weight:bold; font-size: 14px; margin-bottom: 12px;">
+             👉 Open ./dist/index.html
+           </a>
+           <div style="font-size: 12px; color: #888899; border-top: 1px solid #282830; padding-top: 10px;">
+             Tip: Serve the <code>dist/</code> directory or run <code>cargo run --bin build-web -- --serve</code>.
+           </div>`
+        );
+        return false;
+      }
+
+      // 3. Check for WebGPU availability
+      if (!navigator.gpu) {
+        renderNotice(
+          'WebGPU Not Available',
+          '⚠️',
+          'Raytracer-1 is a hardware-accelerated compute path tracer that requires <strong>WebGPU</strong> support in your browser.',
+          'navigator.gpu is undefined in this browser context.',
+          `<h3 style="font-size: 15px; margin-bottom: 8px; color: #ffffff;">How to enable WebGPU:</h3>
+           <ul style="font-size: 13px; color: #c0c0c8; padding-left: 20px; margin-bottom: 16px;">
+             <li style="margin-bottom: 6px;"><strong>Google Chrome / Edge (Windows/macOS)</strong>: Supported out of the box in version 113+.</li>
+             <li style="margin-bottom: 6px;"><strong>Google Chrome / Chromium (Linux)</strong>: Launch with <code>google-chrome --enable-features=Vulkan,DefaultANGLEVulkan,VulkanFromANGLE --enable-unsafe-webgpu</code> or enable <code>#enable-unsafe-webgpu</code> in <code>chrome://flags</code>.</li>
+             <li style="margin-bottom: 6px;"><strong>Mozilla Firefox</strong>: Open <code>about:config</code>, search for <code>dom.webgpu.enabled</code> and set it to <code>true</code>.</li>
+             <li style="margin-bottom: 6px;"><strong>Apple Safari (macOS / iOS)</strong>: Enable WebGPU under <em>Settings &gt; Advanced &gt; Feature Flags &gt; WebGPU</em>.</li>
+           </ul>
+           <div style="font-size: 12px; color: #888899; border-top: 1px solid #282830; padding-top: 10px;">
+             ℹ️ Note: WebGPU requires a Secure Context (<code>http://localhost</code>, <code>http://127.0.0.1</code>, or <code>https://</code>).
+           </div>`
+        );
+        return false;
+      }
+      return true;
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', checkEnvironment);
+    } else {
+      checkEnvironment();
+    }
+
+    // Global error handler to catch unexpected WASM initialization failures
+    window.addEventListener('error', (event) => {
+      if (document.getElementById('loading')) {
+        renderNotice(
+          'Application Error',
+          '❌',
+          'An unexpected error occurred while loading the application.',
+          event.message || String(event),
+          '<div style="font-size: 12px; color: #888899; border-top: 1px solid #282830; padding-top: 10px;">Check browser developer console (F12) for stack trace.</div>'
+        );
+      }
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+      if (document.getElementById('loading')) {
+        renderNotice(
+          'WebGPU Initialization Error',
+          '❌',
+          'An error occurred during WebGPU / WebAssembly initialization.',
+          event.reason ? (event.reason.message || String(event.reason)) : 'Promise rejected',
+          '<div style="font-size: 12px; color: #888899; border-top: 1px solid #282830; padding-top: 10px;">Check browser developer console (F12) for detailed diagnostics.</div>'
+        );
+      }
+    });
+  </script>
+<link rel="modulepreload" href="./raytracer-1-c654a94e8d633c4c.js" crossorigin="anonymous" integrity="sha384-L/1yV5yN8TjJixUTMrRvZ9HVq3sBzry43Mds3Nby43+6ccx9pq6hrw0+pTGLig4P"><link rel="modulepreload" href="./snippets/raytracer-1-3814054fe582f55c/inline0.js" crossorigin="anonymous" integrity="sha384-QRwIoDx1aCuCcPWp1TwN7C+3Lk1OU3/gq//sN1NL3SNK5DRShXifZPe0bGGHMq/4"><link rel="preload" href="./raytracer-1-c654a94e8d633c4c_bg.wasm" crossorigin="anonymous" integrity="sha384-2qzOHzCW3kVPBCa7khj1fqkAAy3x41M71Wxo/v2yIlCk9AJRNvQ9blx4/s1HCwQ5" as="fetch" type="application/wasm"></head>
 <body>
   <div id="loading">
     <div class="spinner"></div>
     <span>Initializing WebGPU…</span>
   </div>
 
-  <!-- trunk replaces this link with the compiled WASM module -->
+  <!-- Copy static assets (USD models, textures) to dist/resources -->
+  
+
+  <!-- trunk replaces this link with the compiled WASM module (optimized with wasm-opt for size & performance) -->
   
 <script type="module">
-import init, * as bindings from './raytracer-1-5ee12c9993e6beab.js';
-const wasm = await init({ module_or_path: './raytracer-1-5ee12c9993e6beab_bg.wasm' });
+import init, * as bindings from './raytracer-1-c654a94e8d633c4c.js';
+const wasm = await init({ module_or_path: './raytracer-1-c654a94e8d633c4c_bg.wasm' });
 
 
 window.wasmBindings = bindings;
