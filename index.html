@@ -130,21 +130,20 @@
       }
     });
   </script>
-<link rel="modulepreload" href="./raytracer-1-190e257520d3ffce.js" crossorigin="anonymous" integrity="sha384-1jf9fjH6G2nL1fFB2gzx/hWt+zGA/mzttf2rV5gGInB+pevZKEhYoXwXGOBQDgiv"><link rel="preload" href="./raytracer-1-190e257520d3ffce_bg.wasm" crossorigin="anonymous" integrity="sha384-y2RXW9+G6hrT/F8V47fLUiRa5q7eSHfnMK+3ezuiJ5RjHwdV+QDHHBNSGJEoW5PO" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./raytracer-1-1dbb12edae3c276a.js" crossorigin="anonymous" integrity="sha384-cG8AnffeJWb22tgwIUBsQUJ08RPeuVfgK/FyU8q4Z0EtjLrSlNpecxBy7zTEK4bQ"><link rel="preload" href="./raytracer-1-1dbb12edae3c276a_bg.wasm" crossorigin="anonymous" integrity="sha384-rKNjxupWh5nU7t7GDF0S8+wPHvxv01IqqcKjY1WE1u5lVXcNePQlyYTyrjpk3xoc" as="fetch" type="application/wasm"></head>
 <body>
   <div id="loading">
     <div class="spinner"></div>
     <span>Initializing WebGPU…</span>
   </div>
 
-  <!-- Copy static assets (USD models, textures) to dist/resources -->
-  
+  <!-- resources directory is copied to dist/resources by build_web tool directly to avoid macOS AppleDouble staging conflicts -->
 
   <!-- trunk replaces this link with the compiled WASM module (optimized with wasm-opt for size & performance) -->
   
 <script type="module">
-import init, * as bindings from './raytracer-1-190e257520d3ffce.js';
-const wasm = await init({ module_or_path: './raytracer-1-190e257520d3ffce_bg.wasm' });
+import init, * as bindings from './raytracer-1-1dbb12edae3c276a.js';
+const wasm = await init({ module_or_path: './raytracer-1-1dbb12edae3c276a_bg.wasm' });
 
 
 window.wasmBindings = bindings;
