@@ -130,7 +130,7 @@
       }
     });
   </script>
-<link rel="modulepreload" href="./raytracer-1-f8f2df7f356304eb.js" crossorigin="anonymous" integrity="sha384-Uy8LJ9Wm9ObjKyES+iWNJgzPouOikay2Da9/CoJ6PoriZYxC1U1XB7oUs02z1xwP"><link rel="preload" href="./raytracer-1-f8f2df7f356304eb_bg.wasm" crossorigin="anonymous" integrity="sha384-WVfWrAJK++sy4XisozLmIl5d02ZiIrAa1bIANBx7TxUM1bNnDQ05AQb7hJRrITjj" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./raytracer-1-85001d7cda88d90c.js" crossorigin="anonymous" integrity="sha384-XvNGAkx+yW2ggZAc44S4lL48LnWX9yLQCTLVDMEuvbGgr4xlbA/a65Dn3EB6lYFO"><link rel="preload" href="./raytracer-1-85001d7cda88d90c_bg.wasm" crossorigin="anonymous" integrity="sha384-ALVQz4YwzZkgyPJG5zSBQ54HcID83X8o6KQS5yEHdUY/QhpCdrfNVth43jVsXDFS" as="fetch" type="application/wasm"></head>
 <body>
   <div id="loading">
     <div class="spinner"></div>
@@ -139,11 +139,11 @@
 
   <!-- resources directory is copied to dist/resources by build_web tool directly to avoid macOS AppleDouble staging conflicts -->
 
-  <!-- trunk replaces this link with the compiled WASM module (optimized with wasm-opt for size & performance) -->
+  <!-- trunk replaces this link with the compiled WASM module (optimized with wasm-opt for speed & SIMD vectorization) -->
   
 <script type="module">
-import init, * as bindings from './raytracer-1-f8f2df7f356304eb.js';
-const wasm = await init({ module_or_path: './raytracer-1-f8f2df7f356304eb_bg.wasm' });
+import init, * as bindings from './raytracer-1-85001d7cda88d90c.js';
+const wasm = await init({ module_or_path: './raytracer-1-85001d7cda88d90c_bg.wasm' });
 
 
 window.wasmBindings = bindings;
