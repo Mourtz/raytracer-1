@@ -130,7 +130,7 @@
       }
     });
   </script>
-<link rel="modulepreload" href="./raytracer-1-3248fcda67973756.js" crossorigin="anonymous" integrity="sha384-ySXV7Ezoo11AbCO/7v8HaCdOxklyG9t/crQ3xkIPCLR1f1v3aYSBol/OESjV62V2"><link rel="preload" href="./raytracer-1-d5e19985ca6d938f_bg.wasm" crossorigin="anonymous" integrity="sha384-1Hdz8ZQeLIrk5fGZrreQV6pyCjBjCywnx7UawOw1R1pcotUHP6vsFBqlFHW6idO4" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./raytracer-1-b6df15b5e9468b8b.js" crossorigin="anonymous" integrity="sha384-ceHysKW5Kk57SxrNTSsiZ9iNlKQrjNmd7E1C1WWX0Tkc1vMVvPi/k6ZjmL/7c9aA"><link rel="preload" href="./raytracer-1-8f730dee418a96c_bg.wasm" crossorigin="anonymous" integrity="sha384-CKVYt3H0aOptzG2KNKkFsIrCZJwFPKT28FDxz6otgtTp7cEET56V3aU2OfUskoZq" as="fetch" type="application/wasm"></head>
 <body>
   <div id="loading">
     <div class="spinner"></div>
@@ -142,8 +142,8 @@
   <!-- trunk replaces this link with the compiled WASM module (optimized with wasm-opt for speed & SIMD vectorization) -->
   
 <script type="module">
-import init, * as bindings from './raytracer-1-3248fcda67973756.js';
-const wasm = await init({ module_or_path: './raytracer-1-d5e19985ca6d938f_bg.wasm' });
+import init, * as bindings from './raytracer-1-b6df15b5e9468b8b.js';
+const wasm = await init({ module_or_path: './raytracer-1-8f730dee418a96c_bg.wasm' });
 
 
 window.wasmBindings = bindings;
