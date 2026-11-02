@@ -1,9 +1,26 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Raytracer-1</title>
+  <script>
+    window.__browser_logs = [];
+    ['log', 'warn', 'error', 'info', 'debug'].forEach(function(level) {
+      var orig = console[level];
+      console[level] = function() {
+        var msg = Array.prototype.slice.call(arguments).map(function(arg) {
+          try {
+            return (typeof arg === 'object') ? JSON.stringify(arg) : String(arg);
+          } catch(e) {
+            return String(arg);
+          }
+        }).join(' ');
+        window.__browser_logs.push({ level: level, message: msg, time: Date.now() });
+        if (orig) orig.apply(console, arguments);
+      };
+    });
+  </script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; background: #0a0a0a; overflow: hidden; }
@@ -27,6 +44,14 @@
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
   <script>
+    window.removeLoadingOverlay = function() {
+      const el = document.getElementById('loading');
+      if (el) {
+        el.style.display = 'none';
+        el.remove();
+      }
+    };
+
     function renderNotice(title, icon, message, detail, tips) {
       const loading = document.getElementById('loading');
       if (!loading) return;
@@ -86,7 +111,7 @@
           `<h3 style="font-size: 15px; margin-bottom: 8px; color: #ffffff;">How to enable WebGPU:</h3>
            <ul style="font-size: 13px; color: #c0c0c8; padding-left: 20px; margin-bottom: 16px;">
              <li style="margin-bottom: 6px;"><strong>Google Chrome / Edge (Windows/macOS)</strong>: Supported out of the box in version 113+.</li>
-             <li style="margin-bottom: 6px;"><strong>Google Chrome / Chromium (Linux)</strong>: Launch with <code>google-chrome --enable-features=Vulkan,DefaultANGLEVulkan,VulkanFromANGLE --enable-unsafe-webgpu</code> or enable <code>#enable-unsafe-webgpu</code> in <code>chrome://flags</code>.</li>
+             <li style="margin-bottom: 6px;"><strong>Google Chrome / Chromium (Linux)</strong>: Enable <code>#enable-unsafe-webgpu</code> in <code>chrome://flags</code> or launch with <code>google-chrome --enable-unsafe-webgpu</code>.</li>
              <li style="margin-bottom: 6px;"><strong>Mozilla Firefox</strong>: Open <code>about:config</code>, search for <code>dom.webgpu.enabled</code> and set it to <code>true</code>.</li>
              <li style="margin-bottom: 6px;"><strong>Apple Safari (macOS / iOS)</strong>: Enable WebGPU under <em>Settings &gt; Advanced &gt; Feature Flags &gt; WebGPU</em>.</li>
            </ul>
@@ -130,7 +155,7 @@
       }
     });
   </script>
-<link rel="modulepreload" href="./raytracer-1-b6df15b5e9468b8b.js" crossorigin="anonymous" integrity="sha384-ceHysKW5Kk57SxrNTSsiZ9iNlKQrjNmd7E1C1WWX0Tkc1vMVvPi/k6ZjmL/7c9aA"><link rel="preload" href="./raytracer-1-8f730dee418a96c_bg.wasm" crossorigin="anonymous" integrity="sha384-CKVYt3H0aOptzG2KNKkFsIrCZJwFPKT28FDxz6otgtTp7cEET56V3aU2OfUskoZq" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./raytracer-1-e19479db63c1528d.js" crossorigin="anonymous" integrity="sha384-GHcuU1W6NiN6T9e6yi56jKjTsixaroDCfqKpByGVCo/VYcpixhWueTW5JfEn7Wr8"><link rel="preload" href="./raytracer-1-5df630e1a2c7ae18_bg.wasm" crossorigin="anonymous" integrity="sha384-Uob6sLPClFDyXdGRLLhLAVwAQMEa9NSr/VrNAtHItszRugpLRPNHaBwqcj4ZGNdW" as="fetch" type="application/wasm"></head>
 <body>
   <div id="loading">
     <div class="spinner"></div>
@@ -142,8 +167,8 @@
   <!-- trunk replaces this link with the compiled WASM module (optimized with wasm-opt for speed & SIMD vectorization) -->
   
 <script type="module">
-import init, * as bindings from './raytracer-1-b6df15b5e9468b8b.js';
-const wasm = await init({ module_or_path: './raytracer-1-8f730dee418a96c_bg.wasm' });
+import init, * as bindings from './raytracer-1-e19479db63c1528d.js';
+const wasm = await init({ module_or_path: './raytracer-1-5df630e1a2c7ae18_bg.wasm' });
 
 
 window.wasmBindings = bindings;
