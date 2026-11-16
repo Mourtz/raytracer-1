@@ -1,10 +1,11 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Raytracer-1</title>
+  <title>Raytracer-1 | Real-Time Hardware Path Tracer</title>
   <script>
+    // Capture browser console logs for diagnostic reporting
     window.__browser_logs = [];
     ['log', 'warn', 'error', 'info', 'debug'].forEach(function(level) {
       var orig = console[level];
@@ -23,143 +24,632 @@
   </script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; background: #0a0a0a; overflow: hidden; }
-    canvas { display: block; width: 100vw; height: 100vh; }
+    html, body {
+      width: 100%; height: 100%;
+      background: #09090b;
+      color: #e4e4e7;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+    }
+    canvas {
+      display: block; width: 100vw; height: 100vh;
+      position: absolute; top: 0; left: 0;
+      outline: none; touch-action: none;
+    }
     #loading {
       position: fixed; inset: 0;
       display: flex; align-items: center; justify-content: center;
-      flex-direction: column; gap: 12px;
-      color: #e0e0e0; font-family: monospace; font-size: 14px;
-      background: #0a0a0a;
-      z-index: 100;
+      background: #09090b;
+      z-index: 1000;
+      padding: 20px;
+      overflow-y: auto;
     }
-    #loading span { opacity: 0.6; }
+    .spinner-box {
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+      color: #a1a1aa; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 14px; letter-spacing: 0.5px;
+    }
     .spinner {
-      width: 32px; height: 32px;
-      border: 2px solid #333;
-      border-top-color: #7e57c2;
+      width: 42px; height: 42px;
+      border: 3px solid #27272a;
+      border-top-color: #8b5cf6;
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      animation: spin 0.75s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Diagnostic Card Styling */
+    .diag-card {
+      max-width: 740px; width: 100%;
+      background: #121217;
+      border: 1px solid #2e2e38;
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: 0 20px 48px -10px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.03);
+      color: #e4e4e7;
+      line-height: 1.55;
+      text-align: left;
+      animation: fadeIn 0.2s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .diag-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px; margin-bottom: 16px; padding-bottom: 16px;
+      border-bottom: 1px solid #27272a;
+    }
+    .diag-title-group { display: flex; align-items: center; gap: 12px; }
+    .diag-icon { font-size: 28px; line-height: 1; }
+    .diag-title { font-size: 20px; font-weight: 700; color: #f43f5e; margin: 0; }
+    .diag-title.warning { color: #f59e0b; }
+    .diag-title.info { color: #8b5cf6; }
+    .diag-subtitle { font-size: 13px; color: #a1a1aa; margin-top: 4px; }
+    .diag-badge {
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+      padding: 4px 10px; border-radius: 9999px; background: rgba(244,63,94,0.12);
+      color: #fb7185; border: 1px solid rgba(244,63,94,0.25); white-space: nowrap;
+    }
+    .diag-badge.warning { background: rgba(245,158,11,0.12); color: #fbbf24; border-color: rgba(245,158,11,0.25); }
+
+    .diag-section-title {
+      font-size: 13px; font-weight: 600; color: #d4d4d8; text-transform: uppercase;
+      letter-spacing: 0.75px; margin: 18px 0 10px 0; display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Probe Checklist */
+    .probe-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 8px; margin-bottom: 16px;
+    }
+    .probe-item {
+      background: #18181f; border: 1px solid #27272a; border-radius: 6px;
+      padding: 8px 12px; font-size: 12px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .probe-name { color: #a1a1aa; }
+    .probe-status { font-weight: 600; font-family: ui-monospace, monospace; }
+    .probe-status.pass { color: #4ade80; }
+    .probe-status.fail { color: #f87171; }
+    .probe-status.warn { color: #fbbf24; }
+
+    /* Code & Callouts */
+    .diag-error-box {
+      background: #1a0f12; border: 1px solid rgba(244,63,94,0.3); border-radius: 8px;
+      padding: 12px 16px; font-family: ui-monospace, monospace; font-size: 12px;
+      color: #fda4af; margin-bottom: 18px; word-break: break-all; white-space: pre-wrap;
+    }
+    pre.code-block {
+      background: #0d0d12; border: 1px solid #27272a; border-radius: 8px;
+      padding: 12px 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px; color: #a5b4fc; overflow-x: auto; margin: 8px 0 14px 0; line-height: 1.5;
+    }
+
+    /* Steps list */
+    .steps-list {
+      list-style: none; padding: 0; margin: 0 0 18px 0; counter-reset: step-counter;
+    }
+    .steps-list li {
+      counter-increment: step-counter; position: relative; padding-left: 32px;
+      margin-bottom: 12px; font-size: 13.5px; color: #d4d4d8; line-height: 1.5;
+    }
+    .steps-list li::before {
+      content: counter(step-counter); position: absolute; left: 0; top: 0;
+      width: 22px; height: 22px; border-radius: 50%; background: #27272a;
+      border: 1px solid #3f3f46; color: #a1a1aa; font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .steps-list li.highlight-step::before {
+      background: #8b5cf6; border-color: #a78bfa; color: #ffffff;
+    }
+
+    /* Buttons */
+    .diag-actions {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; padding-top: 18px;
+      border-top: 1px solid #27272a;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 9px 18px; border-radius: 6px; font-size: 13px; font-weight: 600;
+      cursor: pointer; text-decoration: none; transition: all 0.15s ease;
+      border: 1px solid transparent; font-family: inherit;
+    }
+    .btn-primary { background: #7c3aed; color: #ffffff; }
+    .btn-primary:hover { background: #6d28d9; }
+    .btn-secondary { background: #27272a; color: #e4e4e7; border-color: #3f3f46; }
+    .btn-secondary:hover { background: #3f3f46; color: #ffffff; }
+    .btn-outline { background: transparent; color: #a1a1aa; border-color: #3f3f46; }
+    .btn-outline:hover { color: #ffffff; border-color: #71717a; }
+
+    .browser-tabs {
+      display: flex; gap: 6px; margin: 12px 0; border-bottom: 1px solid #27272a; padding-bottom: 8px;
+      overflow-x: auto;
+    }
+    .browser-tab {
+      background: transparent; border: 1px solid #27272a; border-radius: 6px;
+      color: #a1a1aa; font-size: 12px; font-weight: 500; padding: 6px 12px;
+      cursor: pointer; white-space: nowrap; font-family: inherit;
+    }
+    .browser-tab:hover { color: #f4f4f5; background: #1c1c24; }
+    .browser-tab.active {
+      background: #8b5cf6; color: #ffffff; border-color: #a78bfa; font-weight: 600;
+    }
   </style>
   <script>
     window.removeLoadingOverlay = function() {
       const el = document.getElementById('loading');
       if (el) {
-        el.style.display = 'none';
-        el.remove();
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.25s ease';
+        setTimeout(() => el.remove(), 250);
       }
     };
 
-    function renderNotice(title, icon, message, detail, tips) {
-      const loading = document.getElementById('loading');
-      if (!loading) return;
-      loading.innerHTML = `
-        <div style="max-width: 620px; margin: 20px; padding: 24px; background: #161618; border: 1px solid #7e57c2; border-radius: 10px; color: #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; text-align: left; box-shadow: 0 8px 32px rgba(0,0,0,0.8);">
-          <h2 style="color: #ba68c8; margin-top: 0; margin-bottom: 12px; font-size: 20px; display: flex; align-items: center; gap: 8px;">
-            <span>${icon}</span> ${title}
-          </h2>
-          <p style="margin-bottom: 12px; font-size: 14px; color: #d0d0d5;">${message}</p>
-          ${detail ? `<div style="background: #0d0d0f; padding: 12px 14px; border: 1px solid #333; border-radius: 6px; font-family: monospace; font-size: 12px; color: #ff8e8e; margin-bottom: 16px; word-break: break-all;">${detail}</div>` : ''}
-          ${tips ? tips : ''}
-        </div>`;
+    // Diagnostic state container
+    window.diagState = {
+      isSecureContext: window.isSecureContext,
+      protocol: window.location.protocol,
+      hasWasm: typeof WebAssembly === 'object',
+      hasWasmSimd: false,
+      hasWebGpu: typeof navigator !== 'undefined' && 'gpu' in navigator && !!navigator.gpu,
+      adapterFound: null,
+      adapterInfo: null,
+      deviceCreated: null,
+      deviceError: null,
+      os: 'Unknown OS',
+      browser: 'Unknown Browser',
+      browserFamily: 'unknown'
+    };
+
+    // Detect Client OS and Browser Family
+    function detectClient() {
+      const ua = navigator.userAgent;
+      let os = 'Unknown OS';
+      if (/Windows/i.test(ua)) os = 'Windows';
+      else if (/Macintosh|Mac OS X/i.test(ua)) os = 'macOS';
+      else if (/Android/i.test(ua)) os = 'Android';
+      else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS';
+      else if (/Linux/i.test(ua)) os = 'Linux';
+      else if (/CrOS/i.test(ua)) os = 'ChromeOS';
+
+      let browser = 'Unknown Browser';
+      let family = 'chrome'; // default fallback guide
+      if (/Firefox\/\d+/i.test(ua)) {
+        browser = 'Mozilla Firefox';
+        family = 'firefox';
+      } else if (/Edg\/\d+/i.test(ua)) {
+        browser = 'Microsoft Edge';
+        family = 'edge';
+      } else if (/Chrome\/\d+/i.test(ua)) {
+        browser = 'Google Chrome / Chromium';
+        family = 'chrome';
+      } else if (/Safari\/\d+/i.test(ua) && !/Chrome/i.test(ua)) {
+        browser = 'Apple Safari';
+        family = 'safari';
+      }
+
+      window.diagState.os = os;
+      window.diagState.browser = browser;
+      window.diagState.browserFamily = family;
     }
 
-    function checkEnvironment() {
+    // Check WASM SIMD capability
+    function checkWasmSimd() {
+      try {
+        // Canonical WASM SIMD v128.const verification module
+        return WebAssembly.validate(new Uint8Array([
+          0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+          0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7b,
+          0x03, 0x02, 0x01, 0x00,
+          0x0a, 0x14, 0x01, 0x12, 0x00,
+          0xfd, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x0b
+        ]));
+      } catch(e) {
+        return false;
+      }
+    }
+
+    // Render interactive diagnostic overlay
+    window.renderWebGpuError = function(title, errorMessage, customTips) {
+      const loading = document.getElementById('loading');
+      if (!loading) return;
+
+      detectClient();
+      window.diagState.hasWasmSimd = checkWasmSimd();
+
+      const st = window.diagState;
+      const isWarn = title.toLowerCase().includes('notice') || title.toLowerCase().includes('required');
+      const isLinuxChrome = st.os === 'Linux' && (st.browserFamily === 'chrome' || st.browserFamily === 'edge');
+      const isFirefox = st.browserFamily === 'firefox';
+      const isSafari = st.browserFamily === 'safari';
+      const activeTab = isFirefox ? 'firefox' : (isSafari ? 'safari' : 'chrome');
+
+      const html = `
+        <div class="diag-card">
+          <div class="diag-header">
+            <div class="diag-title-group">
+              <span class="diag-icon">${isWarn ? '⚠️' : '❌'}</span>
+              <div>
+                <h2 class="diag-title ${isWarn ? 'warning' : ''}">${title}</h2>
+                <div class="diag-subtitle">Raytracer-1 WebGPU Graphics Subsystem Diagnostic Report</div>
+              </div>
+            </div>
+            <div class="diag-badge ${isWarn ? 'warning' : ''}">
+              ${st.browser} • ${st.os}
+            </div>
+          </div>
+
+          <!-- Environment Probes -->
+          <div class="diag-section-title">Hardware & Engine Readiness Probes</div>
+          <div class="probe-grid">
+            <div class="probe-item">
+              <span class="probe-name">Secure Context (HTTPS)</span>
+              <span class="probe-status ${st.isSecureContext ? 'pass' : 'fail'}">${st.isSecureContext ? 'PASS' : 'BLOCKED'}</span>
+            </div>
+            <div class="probe-item">
+              <span class="probe-name">WebAssembly (WASM)</span>
+              <span class="probe-status ${st.hasWasm ? 'pass' : 'fail'}">${st.hasWasm ? 'PASS' : 'UNSUPPORTED'}</span>
+            </div>
+            <div class="probe-item">
+              <span class="probe-name">WASM SIMD-128</span>
+              <span class="probe-status ${st.hasWasmSimd ? 'pass' : 'warn'}">${st.hasWasmSimd ? 'SUPPORTED' : 'STANDARD'}</span>
+            </div>
+            <div class="probe-item">
+              <span class="probe-name">navigator.gpu Binding</span>
+              <span class="probe-status ${st.hasWebGpu ? 'pass' : 'fail'}">${st.hasWebGpu ? 'PRESENT' : 'UNDEFINED'}</span>
+            </div>
+            <div class="probe-item">
+              <span class="probe-name">GPU Hardware Adapter</span>
+              <span class="probe-status ${st.adapterFound === true ? 'pass' : (st.adapterFound === false ? 'fail' : 'PENDING')}">
+                ${st.adapterFound === true ? 'INITIALIZED' : (st.adapterFound === false ? 'UNAVAILABLE' : 'TESTING...')}
+              </span>
+            </div>
+            <div class="probe-item">
+              <span class="probe-name">Adapter Hardware Info</span>
+              <span class="probe-status ${st.adapterInfo ? 'pass' : 'warn'}">
+                ${st.adapterInfo ? (st.adapterInfo.vendor || st.adapterInfo.architecture || 'ACTIVE') : 'NONE'}
+              </span>
+            </div>
+          </div>
+
+          <!-- Error Details -->
+          ${errorMessage ? `
+            <div class="diag-section-title">Root Cause Diagnostic Message</div>
+            <div class="diag-error-box">${errorMessage}</div>
+          ` : ''}
+
+          <!-- Context-Specific Resolution Guide -->
+          <div class="diag-section-title">Browser Remediation & Enablement Guide</div>
+
+          ${customTips ? customTips : `
+            <div class="browser-tabs" id="diag-tabs">
+              <button class="browser-tab ${activeTab === 'chrome' ? 'active' : ''}" onclick="switchDiagTab('chrome')">
+                Google Chrome / Edge ${st.os === 'Linux' ? '(Linux Flags)' : ''}
+              </button>
+              <button class="browser-tab ${activeTab === 'firefox' ? 'active' : ''}" onclick="switchDiagTab('firefox')">
+                Mozilla Firefox (about:config)
+              </button>
+              <button class="browser-tab ${activeTab === 'safari' ? 'active' : ''}" onclick="switchDiagTab('safari')">
+                Apple Safari (Feature Flags)
+              </button>
+            </div>
+
+            <!-- Chrome / Chromium Tab -->
+            <div id="tab-content-chrome" style="display: ${activeTab === 'chrome' ? 'block' : 'none'};">
+              <ol class="steps-list">
+                ${st.os === 'Linux' ? `
+                  <li class="highlight-step">
+                    <strong>Linux WebGPU Driver &amp; Flags:</strong> On Linux, WebGPU requires experimental flags enabled. Launch Chrome from your terminal with:
+                    <pre class="code-block">google-chrome --enable-unsafe-webgpu --use-gl=angle --use-angle=vulkan</pre>
+                  </li>
+                  <li>
+                    Or manually enable in browser: open <code>chrome://flags/#enable-unsafe-webgpu</code> and set to <strong>Enabled</strong>.
+                  </li>
+                  <li>
+                    In <code>chrome://flags/#use-angle</code>, select <strong>Vulkan</strong> (preferred) or <strong>OpenGL</strong>.
+                  </li>
+                  <li>
+                    Verify graphics driver acceleration: open <code>chrome://gpu</code> and confirm <em>WebGPU: Hardware accelerated</em> is displayed in green.
+                  </li>
+                ` : `
+                  <li class="highlight-step">
+                    <strong>Chrome / Edge (Windows &amp; macOS):</strong> WebGPU is supported out of the box in Chrome 113+. Ensure your browser is up to date.
+                  </li>
+                  <li>
+                    Verify hardware acceleration is enabled: go to <em>Settings &gt; System</em> and make sure <strong>"Use graphics acceleration when available"</strong> is turned ON.
+                  </li>
+                  <li>
+                    Inspect your GPU driver status at <code>chrome://gpu</code> or <code>edge://gpu</code> to verify WebGPU is not disabled or blocked.
+                  </li>
+                `}
+              </ol>
+            </div>
+
+            <!-- Firefox Tab -->
+            <div id="tab-content-firefox" style="display: ${activeTab === 'firefox' ? 'block' : 'none'};">
+              <ol class="steps-list">
+                <li class="highlight-step">
+                  Open a new tab, type <code>about:config</code> into the address bar, and accept the warning prompt.
+                </li>
+                <li>
+                  Search for <code>dom.webgpu.enabled</code> and click the toggle button to change its value to <strong>true</strong>.
+                </li>
+                ${st.os === 'Linux' ? `
+                  <li>
+                    On Linux systems, also search for <code>gfx.webgpu.force-enabled</code> and set it to <strong>true</strong>.
+                  </li>
+                ` : ''}
+                <li>
+                  Restart Firefox completely and reload this page.
+                </li>
+              </ol>
+            </div>
+
+            <!-- Safari Tab -->
+            <div id="tab-content-safari" style="display: ${activeTab === 'safari' ? 'block' : 'none'};">
+              <ol class="steps-list">
+                <li class="highlight-step">
+                  Ensure you are running <strong>macOS Sonoma (14+)</strong>, <strong>macOS Ventura</strong>, or <strong>iOS / iPadOS 17+</strong>.
+                </li>
+                <li>
+                  Open <em>Safari &gt; Settings &gt; Advanced</em> and check <strong>"Show features for web developers"</strong>.
+                </li>
+                <li>
+                  In the menu bar, open <em>Develop &gt; Feature Flags</em> (or <em>Experimental Features</em>), search for <strong>WebGPU</strong>, and check to enable it.
+                </li>
+                <li>
+                  Reload the page.
+                </li>
+              </ol>
+            </div>
+          `}
+
+          <!-- Action buttons -->
+          <div class="diag-actions">
+            <button class="btn btn-primary" onclick="window.location.reload();">
+              🔄 Retry Connection / Reload
+            </button>
+            <button class="btn btn-secondary" onclick="copyDiagnosticReport()">
+              📋 Copy Diagnostic Report
+            </button>
+            <a class="btn btn-outline" href="https://caniuse.com/webgpu" target="_blank" rel="noopener noreferrer">
+              🌐 WebGPU Compatibility Guide ↗
+            </a>
+          </div>
+        </div>
+      `;
+
+      loading.innerHTML = html;
+    };
+
+    // Tab switcher helper
+    window.switchDiagTab = function(tabName) {
+      ['chrome', 'firefox', 'safari'].forEach(function(t) {
+        var content = document.getElementById('tab-content-' + t);
+        if (content) content.style.display = (t === tabName) ? 'block' : 'none';
+      });
+      var tabs = document.querySelectorAll('#diag-tabs .browser-tab');
+      tabs.forEach(function(tab) {
+        if (tab.getAttribute('onclick') && tab.getAttribute('onclick').includes(tabName)) {
+          tab.classList.add('active');
+        } else {
+          tab.classList.remove('active');
+        }
+      });
+    };
+
+    // Copy diagnostic report to clipboard
+    window.copyDiagnosticReport = function() {
+      const st = window.diagState;
+      const report = {
+        timestamp: new Date().toISOString(),
+        url: window.location.href,
+        protocol: window.location.protocol,
+        isSecureContext: window.isSecureContext,
+        userAgent: navigator.userAgent,
+        os: st.os,
+        browser: st.browser,
+        hasWebAssembly: st.hasWasm,
+        hasWasmSimd: st.hasWasmSimd,
+        hasNavigatorGpu: st.hasWebGpu,
+        adapterFound: st.adapterFound,
+        adapterInfo: st.adapterInfo,
+        deviceCreated: st.deviceCreated,
+        deviceError: st.deviceError,
+        recentLogs: window.__browser_logs.slice(-20)
+      };
+
+      const text = JSON.stringify(report, null, 2);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+          alert('Diagnostic report successfully copied to clipboard!');
+        }).catch(function() {
+          prompt('Copy diagnostic report below:', text);
+        });
+      } else {
+        prompt('Copy diagnostic report below:', text);
+      }
+    };
+
+    // Automated Pre-flight Environment Inspection
+    async function runEnvironmentAudit() {
+      detectClient();
+      window.diagState.hasWasmSimd = checkWasmSimd();
+
       // 1. Check if opened via file:// protocol
       if (window.location.protocol === 'file:') {
-        renderNotice(
+        window.renderWebGpuError(
           'Local Web Server Required',
-          '⚠️',
-          'Browsers block <strong>WebAssembly (WASM)</strong> and <strong>WebGPU</strong> from running directly via the <code>file:///</code> protocol due to cross-origin security policies.',
-          'Current URL: ' + window.location.href,
-          `<h3 style="font-size: 15px; margin-bottom: 8px; color: #ffffff;">How to run:</h3>
-           <p style="font-size: 13px; color: #c0c0c8; margin-bottom: 8px;">Start a local web server from your terminal:</p>
-           <pre style="background:#0d0d0f; padding:10px; border-radius:6px; font-family:monospace; font-size:12px; color:#a5d6a7; margin-bottom:12px;">cargo run --bin build-web -- --serve\n# or\nnpx serve dist\n# or\npython -m http.server -d dist 8080</pre>
-           <div style="font-size: 12px; color: #888899; border-top: 1px solid #282830; padding-top: 10px;">
-             Then open <code style="color: #90caf9;">http://localhost:8080</code> in Chrome / Edge / Firefox.
-           </div>`
+          'Browsers strictly block WebAssembly (WASM) streaming and WebGPU hardware APIs when opening files directly via the "file:///" protocol due to cross-origin security sandboxing.',
+          `<ol class="steps-list">
+             <li class="highlight-step">
+               <strong>Start local web server from your terminal:</strong>
+               <pre class="code-block">cargo run --bin build-web -- --serve\n# or\npython3 -m http.server --directory dist 8095</pre>
+             </li>
+             <li>
+               Open <code style="color: #93c5fd;">http://localhost:8095</code> in Chrome, Firefox, or Edge.
+             </li>
+           </ol>`
         );
         return false;
       }
 
-      // 2. Check if this is the uncompiled source index.html (before trunk build)
+      // 2. Check if this is the uncompiled source template
       if (document.querySelector('link[data-trunk]')) {
-        renderNotice(
+        window.renderWebGpuError(
           'Source Template Opened',
-          '🚀',
-          'You opened the source <code>index.html</code> template. The compiled WebAssembly release is generated into <strong><code>./dist/</code></strong>.',
-          null,
-          `<a href="./dist/index.html" style="display:inline-block; padding:10px 20px; background:#7e57c2; color:#fff; text-decoration:none; border-radius:6px; font-weight:bold; font-size: 14px; margin-bottom: 12px;">
-             👉 Open ./dist/index.html
-           </a>
-           <div style="font-size: 12px; color: #888899; border-top: 1px solid #282830; padding-top: 10px;">
-             Tip: Serve the <code>dist/</code> directory or run <code>cargo run --bin build-web -- --serve</code>.
+          'You opened the source index.html template file. The compiled, high-performance WebAssembly bundle is generated into the "./dist/" directory.',
+          `<div style="margin-bottom: 16px;">
+             <a href="./dist/index.html" class="btn btn-primary" style="margin-bottom: 10px;">
+               👉 Open Compiled ./dist/index.html
+             </a>
+             <div style="font-size: 13px; color: #a1a1aa; margin-top: 8px;">
+               Or run: <code style="color: #a5b4fc;">cargo run --bin build-web -- --serve</code> to build and serve automatically.
+             </div>
            </div>`
         );
         return false;
       }
 
-      // 3. Check for WebGPU availability
-      if (!navigator.gpu) {
-        renderNotice(
-          'WebGPU Not Available',
-          '⚠️',
-          'Raytracer-1 is a hardware-accelerated compute path tracer that requires <strong>WebGPU</strong> support in your browser.',
-          'navigator.gpu is undefined in this browser context.',
-          `<h3 style="font-size: 15px; margin-bottom: 8px; color: #ffffff;">How to enable WebGPU:</h3>
-           <ul style="font-size: 13px; color: #c0c0c8; padding-left: 20px; margin-bottom: 16px;">
-             <li style="margin-bottom: 6px;"><strong>Google Chrome / Edge (Windows/macOS)</strong>: Supported out of the box in version 113+.</li>
-             <li style="margin-bottom: 6px;"><strong>Google Chrome / Chromium (Linux)</strong>: Enable <code>#enable-unsafe-webgpu</code> in <code>chrome://flags</code> or launch with <code>google-chrome --enable-unsafe-webgpu</code>.</li>
-             <li style="margin-bottom: 6px;"><strong>Mozilla Firefox</strong>: Open <code>about:config</code>, search for <code>dom.webgpu.enabled</code> and set it to <code>true</code>.</li>
-             <li style="margin-bottom: 6px;"><strong>Apple Safari (macOS / iOS)</strong>: Enable WebGPU under <em>Settings &gt; Advanced &gt; Feature Flags &gt; WebGPU</em>.</li>
-           </ul>
-           <div style="font-size: 12px; color: #888899; border-top: 1px solid #282830; padding-top: 10px;">
-             ℹ️ Note: WebGPU requires a Secure Context (<code>http://localhost</code>, <code>http://127.0.0.1</code>, or <code>https://</code>).
-           </div>`
+      // 3. Check for Secure Context
+      if (!window.isSecureContext) {
+        window.renderWebGpuError(
+          'Secure Context (HTTPS) Required',
+          'WebGPU is disabled by your browser because this page is loaded over an insecure connection (' + window.location.protocol + '//' + window.location.host + '). Modern browsers restrict hardware compute APIs exclusively to Secure Contexts (http://localhost, http://127.0.0.1, or https://).',
+          `<ol class="steps-list">
+             <li class="highlight-step">
+               If testing locally or on a LAN, access the site using <strong>http://localhost:PORT</strong> or <strong>http://127.0.0.1:PORT</strong> rather than a local network IP.
+             </li>
+             <li>
+               If deployed on a remote server or staging domain, enable <strong>HTTPS / SSL</strong> (e.g. Let's Encrypt or Cloudflare SSL).
+             </li>
+           </ol>`
         );
         return false;
       }
-      return true;
+
+      // 4. Check navigator.gpu availability
+      if (!navigator.gpu) {
+        window.diagState.hasWebGpu = false;
+        window.renderWebGpuError(
+          'WebGPU API Not Available in Browser',
+          'navigator.gpu is undefined in this browser context. WebGPU is either unsupported by this browser version or disabled by browser configuration flags.',
+          null
+        );
+        return false;
+      }
+
+      // 5. Asynchronous Pre-Flight Probe: Test Hardware Adapter Request
+      try {
+        const adapter = await navigator.gpu.requestAdapter({
+          powerPreference: 'high-performance'
+        }) || await navigator.gpu.requestAdapter();
+
+        if (!adapter) {
+          window.diagState.adapterFound = false;
+          window.renderWebGpuError(
+            'WebGPU Hardware Adapter Unavailable',
+            'Your browser supports the WebGPU API, but could not initialize a compatible graphics adapter (GPU). This usually occurs when GPU hardware acceleration is disabled in browser settings, GPU drivers are missing or blacklisted, or required OS platform flags are missing.',
+            null
+          );
+          return false;
+        }
+
+        window.diagState.adapterFound = true;
+        try {
+          if (adapter.info) {
+            window.diagState.adapterInfo = {
+              vendor: adapter.info.vendor || 'Unknown',
+              architecture: adapter.info.architecture || 'Unknown',
+              device: adapter.info.device || 'Unknown',
+              description: adapter.info.description || 'Unknown'
+            };
+          } else if (adapter.requestAdapterInfo) {
+            const info = await adapter.requestAdapterInfo();
+            window.diagState.adapterInfo = {
+              vendor: info.vendor,
+              architecture: info.architecture,
+              device: info.device,
+              description: info.description
+            };
+          }
+        } catch(e) {
+          // Non-critical adapter info probe
+        }
+
+        console.log('[WebGPU Audit] Adapter acquired successfully:', window.diagState.adapterInfo);
+        return true;
+      } catch (err) {
+        window.diagState.adapterFound = false;
+        window.renderWebGpuError(
+          'WebGPU Adapter Request Failed',
+          'Error requesting WebGPU adapter: ' + (err.message || String(err)),
+          null
+        );
+        return false;
+      }
     }
 
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', checkEnvironment);
+      document.addEventListener('DOMContentLoaded', runEnvironmentAudit);
     } else {
-      checkEnvironment();
+      runEnvironmentAudit();
     }
 
-    // Global error handler to catch unexpected WASM initialization failures
-    window.addEventListener('error', (event) => {
+    // Global listeners for unhandled WASM or JavaScript errors
+    window.addEventListener('error', function(event) {
       if (document.getElementById('loading')) {
-        renderNotice(
-          'Application Error',
-          '❌',
-          'An unexpected error occurred while loading the application.',
-          event.message || String(event),
-          '<div style="font-size: 12px; color: #888899; border-top: 1px solid #282830; padding-top: 10px;">Check browser developer console (F12) for stack trace.</div>'
+        let msg = event.message || (event.error && event.error.message) || String(event);
+
+        // Check captured console logs for Rust panic hook output or deeper diagnostic messages
+        const recentErrors = (window.__browser_logs || [])
+          .filter(function(l) { return l.level === 'error'; })
+          .map(function(l) { return l.message; });
+
+        if (recentErrors.length > 0) {
+          const panicMsg = recentErrors[recentErrors.length - 1];
+          if (panicMsg && panicMsg.length > 5 && panicMsg !== msg) {
+            msg = panicMsg + '\n\n' + msg;
+          }
+        }
+
+        window.renderWebGpuError(
+          'Application Loading Failure',
+          msg,
+          '<div style="font-size: 13px; color: #a1a1aa; margin-top: 10px;">Check browser developer console (F12) for detailed stack trace and debug logs.</div>'
         );
       }
     });
 
-    window.addEventListener('unhandledrejection', (event) => {
+    window.addEventListener('unhandledrejection', function(event) {
       if (document.getElementById('loading')) {
-        renderNotice(
-          'WebGPU Initialization Error',
-          '❌',
-          'An error occurred during WebGPU / WebAssembly initialization.',
-          event.reason ? (event.reason.message || String(event.reason)) : 'Promise rejected',
-          '<div style="font-size: 12px; color: #888899; border-top: 1px solid #282830; padding-top: 10px;">Check browser developer console (F12) for detailed diagnostics.</div>'
+        let reason = event.reason ? (event.reason.message || String(event.reason)) : 'Promise rejected';
+
+        const recentErrors = (window.__browser_logs || [])
+          .filter(function(l) { return l.level === 'error'; })
+          .map(function(l) { return l.message; });
+
+        if (recentErrors.length > 0) {
+          const panicMsg = recentErrors[recentErrors.length - 1];
+          if (panicMsg && panicMsg.length > 5 && panicMsg !== reason) {
+            reason = panicMsg + '\n\n' + reason;
+          }
+        }
+
+        window.renderWebGpuError(
+          'WebGPU / WASM Initialization Failure',
+          reason,
+          '<div style="font-size: 13px; color: #a1a1aa; margin-top: 10px;">Check browser developer console (F12) for detailed diagnostics.</div>'
         );
       }
     });
   </script>
-<link rel="modulepreload" href="./raytracer-1-707afe21be69c48e.js" crossorigin="anonymous" integrity="sha384-jDURbdX0yg0E8pynGqEl0yhbmszRfbxVtBkuzpSaJ4PUl4qQ5V1sKodECya9acgk"><link rel="preload" href="./raytracer-1-adfa8d7cd98e795_bg.wasm" crossorigin="anonymous" integrity="sha384-yFapcmLPC98lm8yxfJFBvUM6L3hv7o+IJ7mULPr2QlTLmSEjetyDuihDrjJeUkCj" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./raytracer-1-e6170a4e063a6132.js" crossorigin="anonymous" integrity="sha384-+pDWwFBwK8Sm8mvuwO2GMDn55JWDqm4xFLcxY2s6e1289aA0fUce7wTwh7913wEy"><link rel="preload" href="./raytracer-1-b5a085b944eb5307_bg.wasm" crossorigin="anonymous" integrity="sha384-Zl/d314Lrp2+pLq3L0FXLQ1LgetpmTrrUhenA4D9H5aAxXdhH7VWpv0IhagFuGq8" as="fetch" type="application/wasm"></head>
 <body>
   <div id="loading">
-    <div class="spinner"></div>
-    <span>Initializing WebGPU…</span>
+    <div class="spinner-box">
+      <div class="spinner"></div>
+      <span>Initializing WebGPU Hardware Subsystem…</span>
+    </div>
   </div>
 
   <!-- resources directory is copied to dist/resources by build_web tool directly to avoid macOS AppleDouble staging conflicts -->
@@ -167,8 +657,8 @@
   <!-- trunk replaces this link with the compiled WASM module (optimized with wasm-opt for speed & SIMD vectorization) -->
   
 <script type="module">
-import init, * as bindings from './raytracer-1-707afe21be69c48e.js';
-const wasm = await init({ module_or_path: './raytracer-1-adfa8d7cd98e795_bg.wasm' });
+import init, * as bindings from './raytracer-1-e6170a4e063a6132.js';
+const wasm = await init({ module_or_path: './raytracer-1-b5a085b944eb5307_bg.wasm' });
 
 
 window.wasmBindings = bindings;
