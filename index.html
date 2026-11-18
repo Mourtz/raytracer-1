@@ -595,6 +595,34 @@
       runEnvironmentAudit();
     }
 
+    function formatWasmErrorTips(msg) {
+      if (typeof msg === 'string' && (msg.includes('found 76 65 72 73') || (msg.includes('expected magic word') && msg.includes('76 65 72 73')))) {
+        return `
+          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 18px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="font-size: 20px;">🚨</span>
+              <strong style="color: #f87171; font-size: 15px;">Git LFS Pointer File Served Instead of WebAssembly Binary</strong>
+            </div>
+            <p style="margin: 0 0 12px 0; font-size: 13.5px; color: #d4d4d8; line-height: 1.5;">
+              The web server returned a 130-byte text pointer starting with <code>version https://git-lfs.github.com/spec/v1</code> (hex: <code>76 65 72 73</code> = ASCII <code>"vers"</code>) instead of the actual compiled <code>.wasm</code> binary. <strong>GitHub Pages does not support Git LFS</strong> and will serve the raw pointer file if <code>*.wasm</code> is tracked by Git LFS.
+            </p>
+            <div style="font-weight: 600; font-size: 13px; color: #e4e4e7; margin-bottom: 8px;">Run these steps in your web deployment repo to fix:</div>
+            <pre class="code-block" style="background: #09090b; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; color: #a5b4fc; border: 1px solid #27272a;"># 1. Untrack WASM from Git LFS:
+git lfs untrack "*.wasm"
+
+# 2. Add .gitattributes to ensure Git never filters *.wasm through Git LFS:
+echo "*.wasm -filter -merge -diff" >> .gitattributes
+
+# 3. Re-build and copy the actual raw binary:
+cargo run --bin build-web -- --deploy-path &lt;path-to-repo&gt;
+git add .gitattributes *.wasm
+git commit -m "Deploy raw WebAssembly binary without Git LFS"
+git push</pre>
+          </div>`;
+      }
+      return '<div style="font-size: 13px; color: #a1a1aa; margin-top: 10px;">Check browser developer console (F12) for detailed stack trace and debug logs.</div>';
+    }
+
     // Global listeners for unhandled WASM or JavaScript errors
     window.addEventListener('error', function(event) {
       if (document.getElementById('loading')) {
@@ -615,7 +643,7 @@
         window.renderWebGpuError(
           'Application Loading Failure',
           msg,
-          '<div style="font-size: 13px; color: #a1a1aa; margin-top: 10px;">Check browser developer console (F12) for detailed stack trace and debug logs.</div>'
+          formatWasmErrorTips(msg)
         );
       }
     });
@@ -638,7 +666,7 @@
         window.renderWebGpuError(
           'WebGPU / WASM Initialization Failure',
           reason,
-          '<div style="font-size: 13px; color: #a1a1aa; margin-top: 10px;">Check browser developer console (F12) for detailed diagnostics.</div>'
+          formatWasmErrorTips(reason)
         );
       }
     });
