@@ -239,7 +239,7 @@
           0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
           0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7b,
           0x03, 0x02, 0x01, 0x00,
-          0x0a, 0x14, 0x01, 0x12, 0x00,
+          0x0a, 0x16, 0x01, 0x14, 0x00,
           0xfd, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
           0x0b
         ]));
@@ -596,28 +596,44 @@
     }
 
     function formatWasmErrorTips(msg) {
-      if (typeof msg === 'string' && (msg.includes('found 76 65 72 73') || (msg.includes('expected magic word') && msg.includes('76 65 72 73')))) {
+      const isLfsPointer = typeof msg === 'string' && (
+        msg.includes('found 76 65 72 73') ||
+        (msg.includes('expected magic word') && msg.includes('76 65 72 73'))
+      );
+      const isMagicMismatch = typeof msg === 'string' && (
+        isLfsPointer ||
+        msg.includes('failed to match magic number') ||
+        msg.includes('expected magic word') ||
+        msg.includes('magic number')
+      );
+
+      if (isMagicMismatch) {
         return `
           <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 18px; margin-bottom: 16px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
               <span style="font-size: 20px;">🚨</span>
-              <strong style="color: #f87171; font-size: 15px;">Git LFS Pointer File Served Instead of WebAssembly Binary</strong>
+              <strong style="color: #f87171; font-size: 15px;">Invalid WebAssembly Binary Payload (Magic Number Mismatch)</strong>
             </div>
             <p style="margin: 0 0 12px 0; font-size: 13.5px; color: #d4d4d8; line-height: 1.5;">
-              The web server returned a 130-byte text pointer starting with <code>version https://git-lfs.github.com/spec/v1</code> (hex: <code>76 65 72 73</code> = ASCII <code>"vers"</code>) instead of the actual compiled <code>.wasm</code> binary. <strong>GitHub Pages does not support Git LFS</strong> and will serve the raw pointer file if <code>*.wasm</code> is tracked by Git LFS.
+              The browser expected a valid compiled <code>.wasm</code> binary (starting with header bytes <code>00 61 73 6d</code> = <code>\\0asm</code>), but received text/HTML instead. In Safari/WebKit, this reports as:
+              <br><code style="color: #fb7185;">CompileError: wasm validation error: at offset 4: failed to match magic number</code>
             </p>
-            <div style="font-weight: 600; font-size: 13px; color: #e4e4e7; margin-bottom: 8px;">Run these steps in your web deployment repo to fix:</div>
-            <pre class="code-block" style="background: #09090b; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; color: #a5b4fc; border: 1px solid #27272a;"># 1. Untrack WASM from Git LFS:
-git lfs untrack "*.wasm"
-
-# 2. Add .gitattributes to ensure Git never filters *.wasm through Git LFS:
+            <div style="font-weight: 600; font-size: 13px; color: #e4e4e7; margin-bottom: 8px;">Most common causes and how to resolve:</div>
+            <ol style="margin-left: 20px; font-size: 13px; color: #d4d4d8; line-height: 1.6;">
+              <li style="margin-bottom: 8px;">
+                <strong>Browser Cache:</strong> Safari on macOS caches previous 404 or Git LFS pointer responses. Press <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>E</kbd> to empty the Safari cache, then <kbd>Cmd</kbd>+<kbd>R</kbd> (or open in a Private Window).
+              </li>
+              <li style="margin-bottom: 8px;">
+                <strong>GitHub Pages / Git LFS:</strong> GitHub Pages does not support Git LFS. If <code>*.wasm</code> was tracked by Git LFS, GitHub serves a 130-byte text pointer starting with <code>version https://git-lfs...</code> (hex: <code>76 65 72 73</code>). Run:
+                <pre class="code-block" style="background: #09090b; padding: 10px; border-radius: 6px; font-size: 12px; margin-top: 6px; color: #a5b4fc; border: 1px solid #27272a;">git lfs untrack "*.wasm"
 echo "*.wasm -filter -merge -diff" >> .gitattributes
-
-# 3. Re-build and copy the actual raw binary:
-cargo run --bin build-web -- --deploy-path &lt;path-to-repo&gt;
-git add .gitattributes *.wasm
-git commit -m "Deploy raw WebAssembly binary without Git LFS"
-git push</pre>
+git add .gitattributes *.wasm && git commit -m "Deploy raw WASM" && git push</pre>
+              </li>
+              <li>
+                <strong>Local Clone on MacBook:</strong> If running locally on your MacBook Air, ensure the WASM module is built:
+                <pre class="code-block" style="background: #09090b; padding: 10px; border-radius: 6px; font-size: 12px; margin-top: 6px; color: #a5b4fc; border: 1px solid #27272a;">cargo run --bin build-web -- --serve</pre>
+              </li>
+            </ol>
           </div>`;
       }
       return '<div style="font-size: 13px; color: #a1a1aa; margin-top: 10px;">Check browser developer console (F12) for detailed stack trace and debug logs.</div>';
@@ -671,7 +687,7 @@ git push</pre>
       }
     });
   </script>
-<link rel="modulepreload" href="./raytracer-1-e6170a4e063a6132.js" crossorigin="anonymous" integrity="sha384-+pDWwFBwK8Sm8mvuwO2GMDn55JWDqm4xFLcxY2s6e1289aA0fUce7wTwh7913wEy"><link rel="preload" href="./raytracer-1-b5a085b944eb5307_bg.wasm" crossorigin="anonymous" integrity="sha384-Zl/d314Lrp2+pLq3L0FXLQ1LgetpmTrrUhenA4D9H5aAxXdhH7VWpv0IhagFuGq8" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./raytracer-1-d0bec9089498c742.js" crossorigin="anonymous" integrity="sha384-Dk6pVIgGEX47aj/xTjBA5LFeZGaHaUT8OcuZaZZhw99M1/08hPdgNcx2AkLw0e46"><link rel="preload" href="./raytracer-1-8bd85fb1c5aa66c7_bg.wasm" crossorigin="anonymous" integrity="sha384-/PmvFeEqIQC/YcP2KgV4l0NOYAjFxLbNAoeX9xETGBY/BoiySphlmzJKPw0Q61AG" as="fetch" type="application/wasm"></head>
 <body>
   <div id="loading">
     <div class="spinner-box">
@@ -685,8 +701,8 @@ git push</pre>
   <!-- trunk replaces this link with the compiled WASM module (optimized with wasm-opt for speed & SIMD vectorization) -->
   
 <script type="module">
-import init, * as bindings from './raytracer-1-e6170a4e063a6132.js';
-const wasm = await init({ module_or_path: './raytracer-1-b5a085b944eb5307_bg.wasm' });
+import init, * as bindings from './raytracer-1-d0bec9089498c742.js';
+const wasm = await init({ module_or_path: './raytracer-1-8bd85fb1c5aa66c7_bg.wasm' });
 
 
 window.wasmBindings = bindings;
