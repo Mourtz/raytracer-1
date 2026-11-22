@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,13 +8,13 @@
   <script>
     // Capture browser console logs for diagnostic reporting
     window.__browser_logs = [];
-    ['log', 'warn', 'error', 'info', 'debug'].forEach(function(level) {
+    ['log', 'warn', 'error', 'info', 'debug'].forEach(function (level) {
       var orig = console[level];
-      console[level] = function() {
-        var msg = Array.prototype.slice.call(arguments).map(function(arg) {
+      console[level] = function () {
+        var msg = Array.prototype.slice.call(arguments).map(function (arg) {
           try {
             return (typeof arg === 'object') ? JSON.stringify(arg) : String(arg);
-          } catch(e) {
+          } catch (e) {
             return String(arg);
           }
         }).join(' ');
@@ -23,158 +24,372 @@
     });
   </script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100%; height: 100%;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
       background: #09090b;
       color: #e4e4e7;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       overflow: hidden;
     }
+
     canvas {
-      display: block; width: 100vw; height: 100vh;
-      position: absolute; top: 0; left: 0;
-      outline: none; touch-action: none;
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+      outline: none;
+      touch-action: none;
     }
+
     #loading {
-      position: fixed; inset: 0;
-      display: flex; align-items: center; justify-content: center;
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       background: #09090b;
       z-index: 1000;
       padding: 20px;
       overflow-y: auto;
     }
+
     .spinner-box {
-      display: flex; flex-direction: column; align-items: center; gap: 16px;
-      color: #a1a1aa; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 14px; letter-spacing: 0.5px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      color: #a1a1aa;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 14px;
+      letter-spacing: 0.5px;
     }
+
     .spinner {
-      width: 42px; height: 42px;
+      width: 42px;
+      height: 42px;
       border: 3px solid #27272a;
       border-top-color: #8b5cf6;
       border-radius: 50%;
       animation: spin 0.75s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
 
     /* Diagnostic Card Styling */
     .diag-card {
-      max-width: 740px; width: 100%;
+      max-width: 740px;
+      width: 100%;
       background: #121217;
       border: 1px solid #2e2e38;
       border-radius: 12px;
       padding: 28px;
-      box-shadow: 0 20px 48px -10px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.03);
+      box-shadow: 0 20px 48px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.03);
       color: #e4e4e7;
       line-height: 1.55;
       text-align: left;
       animation: fadeIn 0.2s ease-out;
     }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
     .diag-header {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      gap: 16px; margin-bottom: 16px; padding-bottom: 16px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
       border-bottom: 1px solid #27272a;
     }
-    .diag-title-group { display: flex; align-items: center; gap: 12px; }
-    .diag-icon { font-size: 28px; line-height: 1; }
-    .diag-title { font-size: 20px; font-weight: 700; color: #f43f5e; margin: 0; }
-    .diag-title.warning { color: #f59e0b; }
-    .diag-title.info { color: #8b5cf6; }
-    .diag-subtitle { font-size: 13px; color: #a1a1aa; margin-top: 4px; }
-    .diag-badge {
-      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
-      padding: 4px 10px; border-radius: 9999px; background: rgba(244,63,94,0.12);
-      color: #fb7185; border: 1px solid rgba(244,63,94,0.25); white-space: nowrap;
+
+    .diag-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
-    .diag-badge.warning { background: rgba(245,158,11,0.12); color: #fbbf24; border-color: rgba(245,158,11,0.25); }
+
+    .diag-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .diag-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f43f5e;
+      margin: 0;
+    }
+
+    .diag-title.warning {
+      color: #f59e0b;
+    }
+
+    .diag-title.info {
+      color: #8b5cf6;
+    }
+
+    .diag-subtitle {
+      font-size: 13px;
+      color: #a1a1aa;
+      margin-top: 4px;
+    }
+
+    .diag-badge {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: rgba(244, 63, 94, 0.12);
+      color: #fb7185;
+      border: 1px solid rgba(244, 63, 94, 0.25);
+      white-space: nowrap;
+    }
+
+    .diag-badge.warning {
+      background: rgba(245, 158, 11, 0.12);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.25);
+    }
 
     .diag-section-title {
-      font-size: 13px; font-weight: 600; color: #d4d4d8; text-transform: uppercase;
-      letter-spacing: 0.75px; margin: 18px 0 10px 0; display: flex; align-items: center; gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #d4d4d8;
+      text-transform: uppercase;
+      letter-spacing: 0.75px;
+      margin: 18px 0 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     /* Probe Checklist */
     .probe-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 8px; margin-bottom: 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 8px;
+      margin-bottom: 16px;
     }
+
     .probe-item {
-      background: #18181f; border: 1px solid #27272a; border-radius: 6px;
-      padding: 8px 12px; font-size: 12px; display: flex; align-items: center; justify-content: space-between;
+      background: #18181f;
+      border: 1px solid #27272a;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    .probe-name { color: #a1a1aa; }
-    .probe-status { font-weight: 600; font-family: ui-monospace, monospace; }
-    .probe-status.pass { color: #4ade80; }
-    .probe-status.fail { color: #f87171; }
-    .probe-status.warn { color: #fbbf24; }
+
+    .probe-name {
+      color: #a1a1aa;
+    }
+
+    .probe-status {
+      font-weight: 600;
+      font-family: ui-monospace, monospace;
+    }
+
+    .probe-status.pass {
+      color: #4ade80;
+    }
+
+    .probe-status.fail {
+      color: #f87171;
+    }
+
+    .probe-status.warn {
+      color: #fbbf24;
+    }
 
     /* Code & Callouts */
     .diag-error-box {
-      background: #1a0f12; border: 1px solid rgba(244,63,94,0.3); border-radius: 8px;
-      padding: 12px 16px; font-family: ui-monospace, monospace; font-size: 12px;
-      color: #fda4af; margin-bottom: 18px; word-break: break-all; white-space: pre-wrap;
+      background: #1a0f12;
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      color: #fda4af;
+      margin-bottom: 18px;
+      word-break: break-all;
+      white-space: pre-wrap;
     }
+
     pre.code-block {
-      background: #0d0d12; border: 1px solid #27272a; border-radius: 8px;
-      padding: 12px 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 12px; color: #a5b4fc; overflow-x: auto; margin: 8px 0 14px 0; line-height: 1.5;
+      background: #0d0d12;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      color: #a5b4fc;
+      overflow-x: auto;
+      margin: 8px 0 14px 0;
+      line-height: 1.5;
     }
 
     /* Steps list */
     .steps-list {
-      list-style: none; padding: 0; margin: 0 0 18px 0; counter-reset: step-counter;
+      list-style: none;
+      padding: 0;
+      margin: 0 0 18px 0;
+      counter-reset: step-counter;
     }
+
     .steps-list li {
-      counter-increment: step-counter; position: relative; padding-left: 32px;
-      margin-bottom: 12px; font-size: 13.5px; color: #d4d4d8; line-height: 1.5;
+      counter-increment: step-counter;
+      position: relative;
+      padding-left: 32px;
+      margin-bottom: 12px;
+      font-size: 13.5px;
+      color: #d4d4d8;
+      line-height: 1.5;
     }
+
     .steps-list li::before {
-      content: counter(step-counter); position: absolute; left: 0; top: 0;
-      width: 22px; height: 22px; border-radius: 50%; background: #27272a;
-      border: 1px solid #3f3f46; color: #a1a1aa; font-size: 11px; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #27272a;
+      border: 1px solid #3f3f46;
+      color: #a1a1aa;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+
     .steps-list li.highlight-step::before {
-      background: #8b5cf6; border-color: #a78bfa; color: #ffffff;
+      background: #8b5cf6;
+      border-color: #a78bfa;
+      color: #ffffff;
     }
 
     /* Buttons */
     .diag-actions {
-      display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; padding-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+      padding-top: 18px;
       border-top: 1px solid #27272a;
     }
+
     .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 9px 18px; border-radius: 6px; font-size: 13px; font-weight: 600;
-      cursor: pointer; text-decoration: none; transition: all 0.15s ease;
-      border: 1px solid transparent; font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+      font-family: inherit;
     }
-    .btn-primary { background: #7c3aed; color: #ffffff; }
-    .btn-primary:hover { background: #6d28d9; }
-    .btn-secondary { background: #27272a; color: #e4e4e7; border-color: #3f3f46; }
-    .btn-secondary:hover { background: #3f3f46; color: #ffffff; }
-    .btn-outline { background: transparent; color: #a1a1aa; border-color: #3f3f46; }
-    .btn-outline:hover { color: #ffffff; border-color: #71717a; }
+
+    .btn-primary {
+      background: #7c3aed;
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: #6d28d9;
+    }
+
+    .btn-secondary {
+      background: #27272a;
+      color: #e4e4e7;
+      border-color: #3f3f46;
+    }
+
+    .btn-secondary:hover {
+      background: #3f3f46;
+      color: #ffffff;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: #a1a1aa;
+      border-color: #3f3f46;
+    }
+
+    .btn-outline:hover {
+      color: #ffffff;
+      border-color: #71717a;
+    }
 
     .browser-tabs {
-      display: flex; gap: 6px; margin: 12px 0; border-bottom: 1px solid #27272a; padding-bottom: 8px;
+      display: flex;
+      gap: 6px;
+      margin: 12px 0;
+      border-bottom: 1px solid #27272a;
+      padding-bottom: 8px;
       overflow-x: auto;
     }
+
     .browser-tab {
-      background: transparent; border: 1px solid #27272a; border-radius: 6px;
-      color: #a1a1aa; font-size: 12px; font-weight: 500; padding: 6px 12px;
-      cursor: pointer; white-space: nowrap; font-family: inherit;
+      background: transparent;
+      border: 1px solid #27272a;
+      border-radius: 6px;
+      color: #a1a1aa;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
     }
-    .browser-tab:hover { color: #f4f4f5; background: #1c1c24; }
+
+    .browser-tab:hover {
+      color: #f4f4f5;
+      background: #1c1c24;
+    }
+
     .browser-tab.active {
-      background: #8b5cf6; color: #ffffff; border-color: #a78bfa; font-weight: 600;
+      background: #8b5cf6;
+      color: #ffffff;
+      border-color: #a78bfa;
+      font-weight: 600;
     }
   </style>
   <script>
-    window.removeLoadingOverlay = function() {
+    window.removeLoadingOverlay = function () {
       const el = document.getElementById('loading');
       if (el) {
         el.style.opacity = '0';
@@ -243,13 +458,13 @@
           0xfd, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
           0x0b
         ]));
-      } catch(e) {
+      } catch (e) {
         return false;
       }
     }
 
     // Render interactive diagnostic overlay
-    window.renderWebGpuError = function(title, errorMessage, customTips) {
+    window.renderWebGpuError = function (title, errorMessage, customTips) {
       const loading = document.getElementById('loading');
       if (!loading) return;
 
@@ -422,13 +637,13 @@
     };
 
     // Tab switcher helper
-    window.switchDiagTab = function(tabName) {
-      ['chrome', 'firefox', 'safari'].forEach(function(t) {
+    window.switchDiagTab = function (tabName) {
+      ['chrome', 'firefox', 'safari'].forEach(function (t) {
         var content = document.getElementById('tab-content-' + t);
         if (content) content.style.display = (t === tabName) ? 'block' : 'none';
       });
       var tabs = document.querySelectorAll('#diag-tabs .browser-tab');
-      tabs.forEach(function(tab) {
+      tabs.forEach(function (tab) {
         if (tab.getAttribute('onclick') && tab.getAttribute('onclick').includes(tabName)) {
           tab.classList.add('active');
         } else {
@@ -438,7 +653,7 @@
     };
 
     // Copy diagnostic report to clipboard
-    window.copyDiagnosticReport = function() {
+    window.copyDiagnosticReport = function () {
       const st = window.diagState;
       const report = {
         timestamp: new Date().toISOString(),
@@ -460,9 +675,9 @@
 
       const text = JSON.stringify(report, null, 2);
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function() {
+        navigator.clipboard.writeText(text).then(function () {
           alert('Diagnostic report successfully copied to clipboard!');
-        }).catch(function() {
+        }).catch(function () {
           prompt('Copy diagnostic report below:', text);
         });
       } else {
@@ -572,7 +787,7 @@
               description: info.description
             };
           }
-        } catch(e) {
+        } catch (e) {
           // Non-critical adapter info probe
         }
 
@@ -640,14 +855,14 @@ git add .gitattributes *.wasm && git commit -m "Deploy raw WASM" && git push</pr
     }
 
     // Global listeners for unhandled WASM or JavaScript errors
-    window.addEventListener('error', function(event) {
+    window.addEventListener('error', function (event) {
       if (document.getElementById('loading')) {
         let msg = event.message || (event.error && event.error.message) || String(event);
 
         // Check captured console logs for Rust panic hook output or deeper diagnostic messages
         const recentErrors = (window.__browser_logs || [])
-          .filter(function(l) { return l.level === 'error'; })
-          .map(function(l) { return l.message; });
+          .filter(function (l) { return l.level === 'error'; })
+          .map(function (l) { return l.message; });
 
         if (recentErrors.length > 0) {
           const panicMsg = recentErrors[recentErrors.length - 1];
@@ -664,13 +879,13 @@ git add .gitattributes *.wasm && git commit -m "Deploy raw WASM" && git push</pr
       }
     });
 
-    window.addEventListener('unhandledrejection', function(event) {
+    window.addEventListener('unhandledrejection', function (event) {
       if (document.getElementById('loading')) {
         let reason = event.reason ? (event.reason.message || String(event.reason)) : 'Promise rejected';
 
         const recentErrors = (window.__browser_logs || [])
-          .filter(function(l) { return l.level === 'error'; })
-          .map(function(l) { return l.message; });
+          .filter(function (l) { return l.level === 'error'; })
+          .map(function (l) { return l.message; });
 
         if (recentErrors.length > 0) {
           const panicMsg = recentErrors[recentErrors.length - 1];
@@ -687,7 +902,8 @@ git add .gitattributes *.wasm && git commit -m "Deploy raw WASM" && git push</pr
       }
     });
   </script>
-<link rel="modulepreload" href="./raytracer-1-d0bec9089498c742.js" crossorigin="anonymous" integrity="sha384-Dk6pVIgGEX47aj/xTjBA5LFeZGaHaUT8OcuZaZZhw99M1/08hPdgNcx2AkLw0e46"><link rel="preload" href="./raytracer-1-8bd85fb1c5aa66c7_bg.wasm" crossorigin="anonymous" integrity="sha384-/PmvFeEqIQC/YcP2KgV4l0NOYAjFxLbNAoeX9xETGBY/BoiySphlmzJKPw0Q61AG" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./raytracer-1-a10a1f7d60573579.js" crossorigin="anonymous" integrity="sha384-gCyT4ea4R6J3OFGmO47dEbEnjD7l8A61NhhqlTPdJInCe17w6TPOdxrAZTEtuu7i"><link rel="preload" href="./raytracer-1-ae5b828c466c5448_bg.wasm" crossorigin="anonymous" integrity="sha384-t66Vj6KHGnPn11OxM9C8Vs33MjnxSravCJF370k58W7YNHrq0A2tKXcKrt0MZLaL" as="fetch" type="application/wasm"></head>
+
 <body>
   <div id="loading">
     <div class="spinner-box">
@@ -701,8 +917,8 @@ git add .gitattributes *.wasm && git commit -m "Deploy raw WASM" && git push</pr
   <!-- trunk replaces this link with the compiled WASM module (optimized with wasm-opt for speed & SIMD vectorization) -->
   
 <script type="module">
-import init, * as bindings from './raytracer-1-d0bec9089498c742.js';
-const wasm = await init({ module_or_path: './raytracer-1-8bd85fb1c5aa66c7_bg.wasm' });
+import init, * as bindings from './raytracer-1-a10a1f7d60573579.js';
+const wasm = await init({ module_or_path: './raytracer-1-ae5b828c466c5448_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -712,4 +928,5 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
 </script>
 </body>
+
 </html>
