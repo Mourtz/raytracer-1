@@ -902,7 +902,7 @@ git add .gitattributes *.wasm && git commit -m "Deploy raw WASM" && git push</pr
       }
     });
   </script>
-<link rel="modulepreload" href="./raytracer-1-a10a1f7d60573579.js" crossorigin="anonymous" integrity="sha384-gCyT4ea4R6J3OFGmO47dEbEnjD7l8A61NhhqlTPdJInCe17w6TPOdxrAZTEtuu7i"><link rel="preload" href="./raytracer-1-ae5b828c466c5448_bg.wasm" crossorigin="anonymous" integrity="sha384-t66Vj6KHGnPn11OxM9C8Vs33MjnxSravCJF370k58W7YNHrq0A2tKXcKrt0MZLaL" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./raytracer-1-f8a1bc9704cd02c2.js" crossorigin="anonymous" integrity="sha384-iw2xhRqFX2Thg3xEP1Jitks8flVPtugT8SeBptKTkv2OMKS33+nbBZhn5hquhBlZ"><link rel="preload" href="./raytracer-1-a16959fe3efc20e6_bg.wasm" crossorigin="anonymous" integrity="sha384-uBv0VtLCkBnon+P49iK/rbUE3lmksl7BVVHgdY8Q3ZTZaOGJx6aXdtp76tJ+FWlv" as="fetch" type="application/wasm"></head>
 
 <body>
   <div id="loading">
@@ -917,8 +917,8 @@ git add .gitattributes *.wasm && git commit -m "Deploy raw WASM" && git push</pr
   <!-- trunk replaces this link with the compiled WASM module (optimized with wasm-opt for speed & SIMD vectorization) -->
   
 <script type="module">
-import init, * as bindings from './raytracer-1-a10a1f7d60573579.js';
-const wasm = await init({ module_or_path: './raytracer-1-ae5b828c466c5448_bg.wasm' });
+import init, * as bindings from './raytracer-1-f8a1bc9704cd02c2.js';
+const wasm = await init({ module_or_path: './raytracer-1-a16959fe3efc20e6_bg.wasm' });
 
 
 window.wasmBindings = bindings;
